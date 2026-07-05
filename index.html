@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brainwave Audio Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Updated CDN for reliability -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { 
+            background-color: #0f172a; 
+            color: #f8fafc; 
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+        }
+        
+        .glass-panel { 
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #475569;
+            border-radius: 2px;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+        
+        /* Pulse Animation */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 20px rgba(59, 130, 246, 0); }
+            100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        
+        .visualizer-active {
+            animation: pulse-ring 1s infinite cubic-bezier(0.455, 0.03, 0.515, 0.955);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div class="glass-panel w-full max-w-3xl rounded-2xl p-6 md:p-10 shadow-2xl">
+        
+        <!-- Header -->
+        <div class="text-center mb-10">
+            <h1 class="text-3xl md:text-4xl font-bold mb-3 flex items-center justify-center gap-3">
+                <i data-lucide="waves" class="text-blue-500 w-8 h-8"></i>
+                Isochronic Brainwave Lab
+            </h1>
+            <p class="text-slate-400 max-w-xl mx-auto text-sm md:text-base">
+                Generates Isochronic Tones which pulse naturally through your device speakers—no headphones required. Adjust the pulse frequency below to test different brainwave states.
+            </p>
+        </div>
+
+        <!-- Main Visualizer & Play Controls -->
+        <div class="flex flex-col items-center justify-center mb-10">
+            <div id="visualizer" class="w-24 h-24 rounded-full bg-slate-800 border-2 border-blue-500/50 flex items-center justify-center mb-6 transition-all duration-300">
+                <i data-lucide="activity" class="text-blue-400 w-10 h-10"></i>
+            </div>
+            
+            <button id="playBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 px-10 rounded-full shadow-lg shadow-blue-500/30 transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2">
+                <i data-lucide="play" id="playIcon"></i>
+                <span id="playText">Start Entrainment</span>
+            </button>
+        </div>
+
+        <!-- Controls Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            <!-- Pulse Frequency (Brainwave Target) -->
+            <div class="bg-slate-800/50 p-5 rounded-xl border border-slate-700/50">
+                <div class="flex justify-between items-center mb-4">
+                    <label class="font-medium text-blue-300 flex items-center gap-2">
+                        <i data-lucide="zap" class="w-4 h-4"></i> Pulse Frequency (Hz)
+                    </label>
+                    <span id="pulseVal" class="text-xl font-mono font-bold bg-slate-900 px-3 py-1 rounded-md">40.0</span>
+                </div>
+                <input type="range" id="pulseFreq" min="0.5" max="60" step="0.5" value="40">
+                <p class="text-xs text-slate-500 mt-2">Target brainwave frequency. 40Hz is Gamma (Deep focus/Neuroprotection).</p>
+                
+                <!-- Presets -->
+                <div class="flex flex-wrap gap-2 mt-4">
+                    <button class="preset-btn text-xs border border-transparent transition-colors bg-slate-700 hover:bg-slate-600 text-slate-100 px-2 py-1 rounded" data-freq="2">Sleep (2Hz)</button>
+                    <button class="preset-btn text-xs border border-transparent transition-colors bg-slate-700 hover:bg-slate-600 text-slate-100 px-2 py-1 rounded" data-freq="6">Meditate (6Hz)</button>
+                    <button class="preset-btn text-xs border border-transparent transition-colors bg-slate-700 hover:bg-slate-600 text-slate-100 px-2 py-1 rounded" data-freq="10">Relax (10Hz)</button>
+                    <button class="preset-btn text-xs border border-transparent transition-colors bg-slate-700 hover:bg-slate-600 text-slate-100 px-2 py-1 rounded" data-freq="20">Alert (20Hz)</button>
+                    <button class="preset-btn text-xs border transition-colors bg-blue-900/50 hover:bg-blue-800/50 border-blue-500/30 px-2 py-1 rounded text-blue-300" data-freq="40">Focus (40Hz)</button>
+                </div>
+            </div>
+
+            <!-- Base Pitch (Carrier Wave) -->
+            <div class="bg-slate-800/50 p-5 rounded-xl border border-slate-700/50">
+                <div class="flex justify-between items-center mb-4">
+                    <label class="font-medium text-slate-300 flex items-center gap-2">
+                        <i data-lucide="music" class="w-4 h-4"></i> Carrier Pitch (Hz)
+                    </label>
+                    <span id="baseVal" class="text-xl font-mono font-bold bg-slate-900 px-3 py-1 rounded-md">200</span>
+                </div>
+                <input type="range" id="baseFreq" min="80" max="600" step="1" value="200">
+                <p class="text-xs text-slate-500 mt-2">The audible tone that carries the pulse. Adjust for personal listening comfort.</p>
+                
+                <div class="mt-4 flex gap-4 text-sm">
+                    <div class="flex-1">
+                        <label class="text-xs text-slate-400 block mb-1">Tone Type</label>
+                        <select id="carrierType" class="w-full bg-slate-700 text-white rounded p-1 outline-none">
+                            <option value="sine">Sine (Smooth)</option>
+                            <option value="triangle">Triangle (Warm)</option>
+                            <option value="square">Square (Harsh)</option>
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <label class="text-xs text-slate-400 block mb-1">Pulse Style</label>
+                        <select id="modulatorType" class="w-full bg-slate-700 text-white rounded p-1 outline-none">
+                            <option value="sine">Smooth (Sine)</option>
+                            <option value="square">Sharp (Square)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Volume Control -->
+            <div class="md:col-span-2 bg-slate-800/50 p-5 rounded-xl border border-slate-700/50 flex items-center gap-4">
+                <i data-lucide="volume-2" class="text-slate-400"></i>
+                <input type="range" id="volume" min="0" max="1" step="0.01" value="0.5" class="flex-1">
+            </div>
+
+            <!-- Ambient Noise -->
+            <div class="bg-slate-800/50 p-5 rounded-xl border border-slate-700/50">
+                <div class="flex justify-between items-center mb-4">
+                    <label class="font-medium text-slate-300 flex items-center gap-2">
+                        <i data-lucide="cloud-rain" class="w-4 h-4"></i> Ambient Noise
+                    </label>
+                </div>
+                <input type="range" id="noiseVolume" min="0" max="1" step="0.01" value="0.0">
+                <p class="text-xs text-slate-500 mt-2">Blend in noise to soften the harshness of the tones.</p>
+                <div class="mt-4">
+                    <select id="noiseType" class="w-full bg-slate-700 text-white rounded p-1 outline-none text-sm">
+                        <option value="pink">Pink Noise (Balanced)</option>
+                        <option value="brown">Brown Noise (Deep)</option>
+                        <option value="white">White Noise (Sharp)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Session Timer -->
+            <div class="bg-slate-800/50 p-5 rounded-xl border border-slate-700/50 flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <label class="font-medium text-slate-300 flex items-center gap-2">
+                            <i data-lucide="timer" class="w-4 h-4"></i> Session Timer
+                        </label>
+                        <span id="timerDisplay" class="text-xl font-mono font-bold bg-slate-900 px-3 py-1 rounded-md text-slate-500">∞</span>
+                    </div>
+                    <select id="timerSelect" class="w-full bg-slate-700 text-white rounded p-2 outline-none text-sm mb-2">
+                        <option value="0">Infinite (Manual Stop)</option>
+                        <option value="15">15 Minutes</option>
+                        <option value="30">30 Minutes</option>
+                        <option value="60">60 Minutes</option>
+                    </select>
+                </div>
+                <p class="text-xs text-slate-500 mt-2">Automatically stops playback when the timer ends.</p>
+            </div>
+            
+        </div>
+    </div>
+
+    <script>
+        // Initialize Icons Robustly (wait for CDN script to fully load in isolated environments)
+        function initIcons() {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            } else {
+                setTimeout(initIcons, 50); // check again in 50ms
+            }
+        }
+        initIcons();
+
+        // Audio Context and Nodes
+        let audioCtx;
+        let carrierOscillator;
+        let modulatorOscillator;
+        let amplitudeGain;
+        let modulatorDepthGain;
+        let masterGain;
+        let isPlaying = false;
+
+        // UI Elements
+        const playBtn = document.getElementById('playBtn');
+        const playText = document.getElementById('playText');
+        const visualizer = document.getElementById('visualizer');
+        
+        const pulseFreqSlider = document.getElementById('pulseFreq');
+        const pulseValDisplay = document.getElementById('pulseVal');
+        
+        const baseFreqSlider = document.getElementById('baseFreq');
+        const baseValDisplay = document.getElementById('baseVal');
+        
+        const volumeSlider = document.getElementById('volume');
+        const carrierTypeSelect = document.getElementById('carrierType');
+        const modulatorTypeSelect = document.getElementById('modulatorType');
+        const presetBtns = document.querySelectorAll('.preset-btn');
+
+        // New UI Elements & Variables
+        const noiseVolumeSlider = document.getElementById('noiseVolume');
+        const noiseTypeSelect = document.getElementById('noiseType');
+        const timerSelect = document.getElementById('timerSelect');
+        const timerDisplay = document.getElementById('timerDisplay');
+        
+        let noiseSource;
+        let noiseFilter;
+        let noiseGain;
+        let timerInterval;
+
+        // Helpers for Noise & Timer
+        function createNoiseBuffer() {
+            const bufferSize = audioCtx.sampleRate * 2; 
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                output[i] = Math.random() * 2 - 1;
+            }
+            return buffer;
+        }
+
+        function setNoiseFilterType(type) {
+            if (!noiseFilter) return;
+            if (type === 'brown') {
+                noiseFilter.frequency.value = 250; 
+            } else if (type === 'pink') {
+                noiseFilter.frequency.value = 1500;
+            } else {
+                noiseFilter.frequency.value = 20000;
+            }
+        }
+
+        function updateTimerDisplay(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            timerDisplay.textContent = `${m}:${s}`;
+        }
+
+        // Function to initialize and start audio graph
+        function startAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            // Master Volume
+            masterGain = audioCtx.createGain();
+            masterGain.connect(audioCtx.destination);
+            masterGain.gain.value = volumeSlider.value;
+
+            // Amplitude Modulation Gain Node
+            amplitudeGain = audioCtx.createGain();
+            amplitudeGain.connect(masterGain);
+            amplitudeGain.gain.value = 0.5;
+
+            // 1. Carrier Oscillator
+            carrierOscillator = audioCtx.createOscillator();
+            carrierOscillator.type = carrierTypeSelect.value;
+            carrierOscillator.frequency.value = parseFloat(baseFreqSlider.value);
+            carrierOscillator.connect(amplitudeGain);
+
+            // 2. Modulator Oscillator (LFO)
+            modulatorOscillator = audioCtx.createOscillator();
+            modulatorOscillator.type = modulatorTypeSelect.value;
+            modulatorOscillator.frequency.value = parseFloat(pulseFreqSlider.value);
+
+            // Modulator Depth Gain
+            modulatorDepthGain = audioCtx.createGain();
+            modulatorDepthGain.gain.value = 0.5; 
+
+            // Connect Modulator -> Depth -> AmplitudeGain.gain
+            modulatorOscillator.connect(modulatorDepthGain);
+            modulatorDepthGain.connect(amplitudeGain.gain);
+
+            // Start Oscillators
+            carrierOscillator.start();
+            modulatorOscillator.start();
+            
+            // --- Noise Generator Setup ---
+            noiseGain = audioCtx.createGain();
+            noiseGain.connect(masterGain);
+            noiseGain.gain.value = parseFloat(noiseVolumeSlider.value);
+
+            noiseSource = audioCtx.createBufferSource();
+            noiseSource.buffer = createNoiseBuffer();
+            noiseSource.loop = true;
+
+            noiseFilter = audioCtx.createBiquadFilter();
+            noiseFilter.type = 'lowpass';
+            setNoiseFilterType(noiseTypeSelect.value);
+
+            noiseSource.connect(noiseFilter);
+            noiseFilter.connect(noiseGain);
+            noiseSource.start();
+
+            // --- Timer Setup ---
+            const durationMins = parseInt(timerSelect.value);
+            if (durationMins > 0) {
+                let timeRemaining = durationMins * 60;
+                updateTimerDisplay(timeRemaining);
+                timerDisplay.classList.replace('text-slate-500', 'text-blue-400');
+                
+                timerInterval = setInterval(() => {
+                    timeRemaining--;
+                    updateTimerDisplay(timeRemaining);
+                    if (timeRemaining <= 0) {
+                        stopAudio();
+                    }
+                }, 1000);
+            } else {
+                timerDisplay.textContent = '∞';
+                timerDisplay.classList.replace('text-blue-400', 'text-slate-500');
+            }
+
+            isPlaying = true;
+            updateUIState();
+        }
+
+        // Function to stop audio safely
+        function stopAudio() {
+            if (carrierOscillator) {
+                // Fade out to prevent popping noises
+                masterGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.015);
+                setTimeout(() => {
+                    carrierOscillator.stop();
+                    modulatorOscillator.stop();
+                    carrierOscillator.disconnect();
+                    modulatorOscillator.disconnect();
+                    
+                    // Cleanup new nodes/intervals
+                    if (noiseSource) {
+                        noiseSource.stop();
+                        noiseSource.disconnect();
+                    }
+                    clearInterval(timerInterval);
+                    timerDisplay.textContent = '∞';
+                    timerDisplay.classList.replace('text-blue-400', 'text-slate-500');
+
+                    isPlaying = false;
+                    updateUIState();
+                }, 50);
+            }
+        }
+
+        // Toggle Play/Stop
+        playBtn.addEventListener('click', () => {
+            if (isPlaying) {
+                stopAudio();
+            } else {
+                startAudio();
+            }
+        });
+
+        // Update UI Visuals
+        function updateUIState() {
+            // We fetch playIcon dynamically because Lucide replaces the original HTML element with an SVG
+            const currentPlayIcon = document.getElementById('playIcon');
+
+            if (isPlaying) {
+                playBtn.classList.replace('bg-blue-600', 'bg-red-600');
+                playBtn.classList.replace('hover:bg-blue-500', 'hover:bg-red-500');
+                playBtn.classList.replace('shadow-blue-500/30', 'shadow-red-500/30');
+                if (currentPlayIcon) currentPlayIcon.setAttribute('data-lucide', 'square');
+                playText.textContent = 'Stop Entrainment';
+                visualizer.classList.add('visualizer-active');
+                
+                // Set animation speed
+                const freq = parseFloat(pulseFreqSlider.value);
+                const visualSpeed = freq > 10 ? 0.1 : (1 / freq); 
+                visualizer.style.animationDuration = `${visualSpeed}s`;
+            } else {
+                playBtn.classList.replace('bg-red-600', 'bg-blue-600');
+                playBtn.classList.replace('hover:bg-red-500', 'hover:bg-blue-500');
+                playBtn.classList.replace('shadow-red-500/30', 'shadow-blue-500/30');
+                if (currentPlayIcon) currentPlayIcon.setAttribute('data-lucide', 'play');
+                playText.textContent = 'Start Entrainment';
+                visualizer.classList.remove('visualizer-active');
+                visualizer.style.animationDuration = '';
+            }
+
+            // Re-render icons if state changed
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        // --- Helper for updating preset button styles ---
+        function updatePresetStyles(currentFreq) {
+            const activeClasses = ['bg-blue-900/50', 'hover:bg-blue-800/50', 'border-blue-500/30', 'text-blue-300'];
+            const inactiveClasses = ['bg-slate-700', 'hover:bg-slate-600', 'border-transparent', 'text-slate-100'];
+
+            presetBtns.forEach(btn => {
+                const btnFreq = btn.getAttribute('data-freq');
+                if (parseFloat(btnFreq) === parseFloat(currentFreq)) {
+                    btn.classList.remove(...inactiveClasses);
+                    btn.classList.add(...activeClasses);
+                } else {
+                    btn.classList.remove(...activeClasses);
+                    btn.classList.add(...inactiveClasses);
+                }
+            });
+        }
+
+        // --- Event Listeners for Live Adjustments ---
+
+        pulseFreqSlider.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value).toFixed(1);
+            pulseValDisplay.textContent = val;
+            
+            updatePresetStyles(val);
+
+            if (isPlaying && modulatorOscillator) {
+                modulatorOscillator.frequency.setTargetAtTime(val, audioCtx.currentTime, 0.05);
+                
+                const visualSpeed = val > 10 ? 0.1 : (1 / val); 
+                visualizer.style.animationDuration = `${visualSpeed}s`;
+            }
+        });
+
+        baseFreqSlider.addEventListener('input', (e) => {
+            const val = e.target.value;
+            baseValDisplay.textContent = val;
+            if (isPlaying && carrierOscillator) {
+                carrierOscillator.frequency.setTargetAtTime(val, audioCtx.currentTime, 0.05);
+            }
+        });
+
+        volumeSlider.addEventListener('input', (e) => {
+            if (isPlaying && masterGain) {
+                masterGain.gain.setTargetAtTime(e.target.value, audioCtx.currentTime, 0.015);
+            }
+        });
+
+        carrierTypeSelect.addEventListener('change', (e) => {
+            if (isPlaying && carrierOscillator) carrierOscillator.type = e.target.value;
+        });
+
+        modulatorTypeSelect.addEventListener('change', (e) => {
+            if (isPlaying && modulatorOscillator) modulatorOscillator.type = e.target.value;
+        });
+
+        // --- New Event Listeners ---
+        noiseVolumeSlider.addEventListener('input', (e) => {
+            if (isPlaying && noiseGain) {
+                noiseGain.gain.setTargetAtTime(e.target.value, audioCtx.currentTime, 0.05);
+            }
+        });
+
+        noiseTypeSelect.addEventListener('change', (e) => {
+            if (isPlaying) setNoiseFilterType(e.target.value);
+        });
+
+        // Preset Buttons Logic
+        presetBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const targetFreq = e.target.getAttribute('data-freq');
+                pulseFreqSlider.value = targetFreq;
+                pulseFreqSlider.dispatchEvent(new Event('input')); 
+            });
+        });
+
+    </script>
+</body>
+</html>
