@@ -1,5 +1,7 @@
 # BrainwavesHTML
 
+https://dylan7474.github.io/BrainwavesHTML
+
 BrainwavesHTML is a single-page web application for experimenting with isochronic brainwave audio. It uses the Web Audio API to generate an audible carrier tone, pulse it at a selected brainwave frequency, and optionally blend in ambient noise for a softer listening experience.
 
 The app runs entirely in the browser from `index.html` and uses CDN-hosted Tailwind CSS and Lucide icons for styling and interface icons.
